@@ -87,12 +87,13 @@ const result = createBusinessDayEvent({
 ## ファイル構成
 
 ```
-├── CalendarSettings.gs        # 設定管理
-├── CalendarUtils.gs           # ユーティリティ関数
-├── CalendarEventBasic.gs      # 基本的な予定作成
-├── CalendarEventRecurring.gs  # 繰り返し予定作成
-├── CalendarEventBusinessDay.gs # 営業日予定作成
-├── CalendarEventExamples.gs   # 使用例
+├── calendar/
+│   ├── CalendarSettings.gs         # 設定管理
+│   ├── CalendarUtils.gs            # ユーティリティ関数
+│   ├── CalendarEventBasic.gs       # 基本的な予定作成
+│   ├── CalendarEventRecurring.gs   # 繰り返し予定作成
+│   ├── CalendarEventBusinessDay.gs # 営業日予定作成
+│   └── CalendarEventExamples.gs    # 使用例
 ├── appsscript.json            # GAS設定
 └── docs/
     └── calendar-event.md      # 詳細ドキュメント

@@ -441,7 +441,7 @@ if (!result.success) {
 
 ## 使用例
 
-`CalendarEventExamples.gs` に以下の使用例関数があります：
+`calendar/CalendarEventExamples.gs` に以下の使用例関数があります：
 
 | 関数名 | 説明 |
 |-------|------|
