@@ -163,7 +163,7 @@ function exampleFirstBusinessDayEvent() {
  */
 function exampleLastBusinessDayEvent() {
   const result = createBusinessDayEvent({
-    yearMonth: '2025-01',
+    yearMonth: '2025-12',
     businessDayType: 'last',
     startTimeStr: '17:00',
     endTimeStr: '18:00',
