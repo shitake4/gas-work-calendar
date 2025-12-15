@@ -1,0 +1,160 @@
+/**
+ * 基本的なカレンダー予約作成機能
+ * - 指定日時でのカレンダー予約作成
+ * - 年月日指定での予約作成
+ */
+
+/**
+ * 指定日時でカレンダー予約を作成
+ * @param {Object} options - 予約オプション
+ * @param {string} options.title - タイトル（必須）
+ * @param {Date|string} options.startTime - 開始日時（必須）
+ * @param {Date|string} options.endTime - 終了日時（必須）
+ * @param {string} [options.description] - 説明（任意）
+ * @param {string} [options.location] - 場所（任意）
+ * @param {string[]} [options.guests] - 参加者メールアドレス（任意）
+ * @param {Object} [options.reminder] - リマインダー設定（任意）
+ * @param {number} [options.reminder.email] - メールリマインダー（分前）
+ * @param {number} [options.reminder.popup] - ポップアップリマインダー（分前）
+ * @param {string} [options.calendarId] - カレンダーID（任意）
+ * @returns {Object} 作成結果 { success: boolean, eventId?: string, error?: string }
+ */
+function createCalendarEvent(options) {
+  try {
+    // 必須パラメータのバリデーション
+    if (!options.title) {
+      throw new Error('タイトルは必須です');
+    }
+    if (!options.startTime) {
+      throw new Error('開始日時は必須です');
+    }
+    if (!options.endTime) {
+      throw new Error('終了日時は必須です');
+    }
+
+    const settings = getCalendarSettings();
+    const calendarId = options.calendarId || settings.defaultCalendarId;
+    const calendar = CalendarApp.getCalendarById(calendarId);
+
+    if (!calendar) {
+      throw new Error(`カレンダーが見つかりません: ${calendarId}`);
+    }
+
+    // 日時のパース
+    const startTime = parseDateTime(options.startTime);
+    const endTime = parseDateTime(options.endTime);
+
+    // 開始日時 < 終了日時 のバリデーション
+    if (startTime >= endTime) {
+      throw new Error('開始日時は終了日時より前である必要があります');
+    }
+
+    // イベントオプションの構築
+    const eventOptions = buildEventOptions(options);
+
+    // イベント作成
+    const event = calendar.createEvent(options.title, startTime, endTime, eventOptions);
+
+    // リマインダー設定
+    if (options.reminder) {
+      event.removeAllReminders();
+      if (options.reminder.email) {
+        event.addEmailReminder(options.reminder.email);
+      }
+      if (options.reminder.popup) {
+        event.addPopupReminder(options.reminder.popup);
+      }
+    } else {
+      // デフォルトリマインダー
+      event.removeAllReminders();
+      event.addPopupReminder(settings.defaultReminderMinutes);
+    }
+
+    Logger.log(`予定を作成しました: ${options.title} (${event.getId()})`);
+    return {
+      success: true,
+      eventId: event.getId(),
+      eventUrl: event.getGuestList().length > 0 ? `https://calendar.google.com/calendar/event?eid=${encodeURIComponent(event.getId())}` : null
+    };
+
+  } catch (error) {
+    Logger.log(`予定作成エラー: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 年月日と時刻を指定してカレンダー予約を作成
+ * @param {Object} options - 予約オプション
+ * @param {number} options.year - 年（必須、YYYY形式）
+ * @param {number} options.month - 月（必須、1-12）
+ * @param {number} options.day - 日（必須、1-31）
+ * @param {string} options.startTimeStr - 開始時刻（必須、HH:mm形式）
+ * @param {string} options.endTimeStr - 終了時刻（必須、HH:mm形式）
+ * @param {string} options.title - タイトル（必須）
+ * @param {string} [options.description] - 説明（任意）
+ * @param {string} [options.location] - 場所（任意）
+ * @param {string[]} [options.guests] - 参加者メールアドレス（任意）
+ * @param {Object} [options.reminder] - リマインダー設定（任意）
+ * @param {string} [options.calendarId] - カレンダーID（任意）
+ * @returns {Object} 作成結果 { success: boolean, eventId?: string, error?: string }
+ */
+function createCalendarEventByDate(options) {
+  try {
+    // 必須パラメータのバリデーション
+    if (options.year === undefined || options.month === undefined || options.day === undefined) {
+      throw new Error('年月日は必須です');
+    }
+    if (!options.startTimeStr) {
+      throw new Error('開始時刻は必須です');
+    }
+    if (!options.endTimeStr) {
+      throw new Error('終了時刻は必須です');
+    }
+    if (!options.title) {
+      throw new Error('タイトルは必須です');
+    }
+
+    // 日付のバリデーション（うるう年考慮）
+    if (!isValidDate(options.year, options.month, options.day)) {
+      throw new Error(`無効な日付です: ${options.year}年${options.month}月${options.day}日`);
+    }
+
+    // 時刻形式のバリデーション
+    if (!isValidTimeFormat(options.startTimeStr)) {
+      throw new Error(`無効な開始時刻形式です: ${options.startTimeStr}（HH:mm形式で入力してください）`);
+    }
+    if (!isValidTimeFormat(options.endTimeStr)) {
+      throw new Error(`無効な終了時刻形式です: ${options.endTimeStr}（HH:mm形式で入力してください）`);
+    }
+
+    // 日時の構築
+    const [startHour, startMinute] = options.startTimeStr.split(':').map(Number);
+    const [endHour, endMinute] = options.endTimeStr.split(':').map(Number);
+
+    const startTime = new Date(options.year, options.month - 1, options.day, startHour, startMinute);
+    const endTime = new Date(options.year, options.month - 1, options.day, endHour, endMinute);
+
+    // 基本関数を呼び出し
+    return createCalendarEvent({
+      title: options.title,
+      startTime: startTime,
+      endTime: endTime,
+      description: options.description,
+      location: options.location,
+      guests: options.guests,
+      reminder: options.reminder,
+      calendarId: options.calendarId
+    });
+
+  } catch (error) {
+    Logger.log(`予定作成エラー: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
