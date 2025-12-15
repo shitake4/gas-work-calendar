@@ -1,0 +1,6 @@
+/**
+ * メインエントリ
+*/
+function execute(){
+    runCalendarReservations();
+}
