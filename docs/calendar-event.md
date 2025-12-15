@@ -6,6 +6,8 @@ Googleカレンダーに予定を作成するための機能群です。
 
 - [設定](#設定)
 - [関数一覧](#関数一覧)
+- [予約実行エントリ](#予約実行エントリ)
+- [予約設定メイン](#予約設定メイン)
 - [1. 基本的な予定作成](#1-基本的な予定作成)
 - [2. 年月日指定での予定作成](#2-年月日指定での予定作成)
 - [3. 繰り返し予定の作成](#3-繰り返し予定の作成)
@@ -64,6 +66,56 @@ showCurrentSettings();
 | `createRecurringEvent(options)` | 繰り返し予定を作成 |
 | `createBusinessDayEvent(options)` | 営業日指定で予定を作成 |
 | `getBusinessDayCount(yearMonth)` | 指定月の営業日数を取得 |
+
+---
+
+## 予約実行エントリ
+
+`calendar/CalendarReservationRunner.gs` に、各作成関数を呼び出すラッパーを用意しています。
+
+| 関数名 | 呼び出し先 | 用途 |
+|-------|-----------|------|
+| `registerBasicReservation(options)` | `createCalendarEvent` | 日時指定の予約作成 |
+| `registerDateReservation(options)` | `createCalendarEventByDate` | 年月日+時刻指定の予約作成 |
+| `registerRecurringReservation(options)` | `createRecurringEvent` | 繰り返し予約作成 |
+| `registerBusinessDayReservation(options)` | `createBusinessDayEvent` | 営業日指定の予約作成 |
+
+例：
+
+```javascript
+// 営業日指定の予約を登録
+registerBusinessDayReservation({
+  yearMonth: '2025-01',
+  businessDayType: 'first',
+  startTimeStr: '09:00',
+  endTimeStr: '10:00',
+  title: '月初ミーティング'
+});
+```
+
+---
+
+## 予約設定メイン
+
+`calendar/CalendarReservationMain.gs` で、実行したい予約をまとめて設定できます。Java の `main` のように、この関数を実行すると有効な予約が一括で登録されます。
+
+```javascript
+function runCalendarReservations() {
+  const reservations = [
+    {
+      type: 'basic',       // basic|date|recurring|businessDay
+      enabled: true,       // true にすると実行対象
+      options: {
+        title: 'ミーティング',
+        startTime: new Date(2025, 0, 15, 10, 0),
+        endTime: new Date(2025, 0, 15, 11, 0)
+      }
+    }
+  ];
+
+  // enabled=true の予約のみが登録され、結果は Logger に出力されます。
+}
+```
 
 ---
 
