@@ -1,13 +1,14 @@
 /**
- * 予約をまとめて登録する（バッチ処理対応）
- * - 下の reservations 配列に登録したい予約を追加して実行
- * - バッチ処理によりAPI呼び出し制限を考慮
- * - 各予約作成にはリトライ機能付き
+ * 予約実行ロジック（バッチ処理対応）
+ *
+ * 予約設定は reservations.config.js で管理しています。
+ * 予約内容を変更する場合は reservations.config.js を編集してください。
  */
 
 import { getCurrentYearMonth, getNextYearMonth, executeWithRetry } from './CalendarUtils.js';
 import { createCalendarEvent, createCalendarEventByDate } from './CalendarEventBasic.js';
 import { createBusinessDayEvent } from './CalendarEventBusinessDay.js';
+import { getReservations } from './reservations.config.js';
 
 /**
  * 予約タイプに応じた実行関数を返す
@@ -104,6 +105,8 @@ export function createEventsInBatch(reservations, batchOptions = {}) {
 
 /**
  * 予約実行エントリポイント
+ *
+ * 予約設定は reservations.config.js で管理しています。
  */
 export function runCalendarReservations() {
   // 実行時の年月を自動取得（当月と翌月）
@@ -111,29 +114,11 @@ export function runCalendarReservations() {
   const nextYearMonth = getNextYearMonth();
   Logger.log(`対象年月: ${currentYearMonth}, ${nextYearMonth}`);
 
-  // 登録する予約の配列
-  // type: 'basic' | 'date' | 'recurring' | 'businessDay'
-  const reservations = [
-    // 当月の予約
-    {
-      type: 'businessDay',
-      yearMonth: currentYearMonth,
-      businessDayType: 'last',
-      allDay: true,
-      title: '経費精算'
-    },
-    // 翌月の予約
-    {
-      type: 'businessDay',
-      yearMonth: nextYearMonth,
-      businessDayType: 'last',
-      allDay: true,
-      title: '経費精算'
-    }
-  ];
+  // 設定ファイルから予約を取得
+  const reservations = getReservations(currentYearMonth, nextYearMonth);
 
   if (reservations.length === 0) {
-    Logger.log('有効な予約がありません。reservations 配列に予約を追加してください。');
+    Logger.log('有効な予約がありません。reservations.config.js に予約を追加してください。');
     return;
   }
 

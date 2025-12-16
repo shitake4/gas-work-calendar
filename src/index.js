@@ -74,6 +74,9 @@ import {
   runCalendarReservations
 } from './EntryPoint.js';
 
+// Reservations Config
+import { getReservations } from './reservations.config.js';
+
 // グローバルスコープに登録
 // CalendarSettings
 globalThis.getCalendarSettings = getCalendarSettings;
@@ -137,3 +140,6 @@ globalThis.validateDayOfMonth = validateDayOfMonth;
 globalThis.getReservationExecutor = getReservationExecutor;
 globalThis.createEventsInBatch = createEventsInBatch;
 globalThis.runCalendarReservations = runCalendarReservations;
+
+// Reservations Config
+globalThis.getReservations = getReservations;

@@ -1,0 +1,102 @@
+/**
+ * 予約設定ファイル
+ *
+ * ============================================================
+ * このファイルはユーザーが編集する設定ファイルです。
+ * 予約内容を変更する場合はこのファイルを編集してください。
+ * ============================================================
+ *
+ * 予約タイプ (type):
+ *   - 'basic'       : 日時指定の予約
+ *   - 'date'        : 年月日指定の予約
+ *   - 'businessDay' : 営業日指定の予約
+ *
+ * 営業日タイプ (businessDayType):
+ *   - 'first' : 月初営業日
+ *   - 'last'  : 月末営業日
+ *   - 'nth'   : 第N営業日（nthDayで指定）
+ *
+ * 設定例:
+ *   {
+ *     type: 'businessDay',
+ *     businessDayType: 'last',    // 月末営業日
+ *     allDay: true,               // 終日予定
+ *     title: '経費精算',
+ *     // 以下はオプション
+ *     description: '説明',
+ *     location: '場所',
+ *     guests: ['user@example.com'],
+ *     reminder: { popup: 30 },
+ *     calendarId: 'your-calendar-id@group.calendar.google.com'
+ *   }
+ */
+
+/**
+ * 予約設定の配列を生成する関数
+ *
+ * @param {string} currentYearMonth - 当月（YYYY-MM形式）
+ * @param {string} nextYearMonth - 翌月（YYYY-MM形式）
+ * @returns {Array<Object>} 予約設定の配列
+ */
+export function getReservations(currentYearMonth, nextYearMonth) {
+  return [
+    // ============================================================
+    // ここから予約設定を編集してください
+    // ============================================================
+
+    // 当月の月末営業日に「経費精算」を登録
+    {
+      type: 'businessDay',
+      yearMonth: currentYearMonth,
+      businessDayType: 'last',
+      allDay: true,
+      title: '経費精算'
+    },
+
+    // 翌月の月末営業日に「経費精算」を登録
+    {
+      type: 'businessDay',
+      yearMonth: nextYearMonth,
+      businessDayType: 'last',
+      allDay: true,
+      title: '経費精算'
+    }
+
+    // ============================================================
+    // 追加の予約例（コメントを外して使用）
+    // ============================================================
+
+    // // 月初営業日に「月次レポート提出」を登録
+    // {
+    //   type: 'businessDay',
+    //   yearMonth: currentYearMonth,
+    //   businessDayType: 'first',
+    //   allDay: true,
+    //   title: '月次レポート提出'
+    // },
+
+    // // 第5営業日に「定例会議」を登録（時間指定）
+    // {
+    //   type: 'businessDay',
+    //   yearMonth: currentYearMonth,
+    //   businessDayType: 'nth',
+    //   nthDay: 5,
+    //   startTimeStr: '10:00',
+    //   endTimeStr: '11:00',
+    //   title: '定例会議',
+    //   description: '月次定例会議',
+    //   location: '会議室A'
+    // },
+
+    // // 特定の日付に予定を登録
+    // {
+    //   type: 'date',
+    //   year: 2025,
+    //   month: 1,
+    //   day: 15,
+    //   startTimeStr: '14:00',
+    //   endTimeStr: '15:00',
+    //   title: 'プロジェクトミーティング'
+    // }
+  ];
+}
