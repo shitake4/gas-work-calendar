@@ -116,13 +116,13 @@ function formatDateTime(date) {
 }
 
 /**
- * 指定月の祝日を取得
+ * 指定月の祝日を取得（法定休日のみ）
  * @param {number} year - 年
  * @param {number} month - 月（1-12）
  * @param {string} holidayCalendarId - 祝日カレンダーID
  * @returns {Date[]} 祝日の配列
  */
-function getHolidaysInMonth(year, month, holidayCalendarId) {
+function getPublicHolidaysInMonth(year, month, holidayCalendarId) {
   try {
     const holidayCalendar = CalendarApp.getCalendarById(holidayCalendarId);
     if (!holidayCalendar) {
@@ -142,6 +142,38 @@ function getHolidaysInMonth(year, month, holidayCalendarId) {
     Logger.log(`祝日取得エラー: ${error.message}`);
     return [];
   }
+}
+
+/**
+ * 指定月の全休日を取得（法定休日 + 会社休日）
+ * @param {number} year - 年
+ * @param {number} month - 月（1-12）
+ * @param {string} holidayCalendarId - 祝日カレンダーID
+ * @returns {Date[]} 休日の配列（重複なし）
+ */
+function getHolidaysInMonth(year, month, holidayCalendarId) {
+  // 法定休日を取得
+  const publicHolidays = getPublicHolidaysInMonth(year, month, holidayCalendarId);
+
+  // 会社休日を取得
+  const companyHolidays = getCompanyHolidaysInMonth(year, month);
+
+  // 重複を除いて結合
+  const allHolidays = [...publicHolidays];
+
+  for (const companyHoliday of companyHolidays) {
+    const isDuplicate = allHolidays.some(holiday =>
+      holiday.getFullYear() === companyHoliday.getFullYear() &&
+      holiday.getMonth() === companyHoliday.getMonth() &&
+      holiday.getDate() === companyHoliday.getDate()
+    );
+
+    if (!isDuplicate) {
+      allHolidays.push(companyHoliday);
+    }
+  }
+
+  return allHolidays;
 }
 
 /**
