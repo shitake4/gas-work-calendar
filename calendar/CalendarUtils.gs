@@ -14,6 +14,18 @@ function getCurrentYearMonth() {
 }
 
 /**
+ * 翌月の年月を取得（YYYY-MM形式）
+ * @returns {string} 翌月の年月（YYYY-MM形式）
+ */
+function getNextYearMonth() {
+  const now = new Date();
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const year = nextMonth.getFullYear();
+  const month = String(nextMonth.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+/**
  * 日時をパース
  * @param {Date|string} dateTime - DateオブジェクトまたはISO 8601形式文字列
  * @returns {Date} Dateオブジェクト

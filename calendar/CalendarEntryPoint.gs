@@ -10,16 +10,26 @@
  * - 各予約作成にはリトライ機能付き
  */
 function runCalendarReservations() {
-  // 実行時の年月を自動取得
+  // 実行時の年月を自動取得（当月と翌月）
   const currentYearMonth = getCurrentYearMonth();
-  Logger.log(`対象年月: ${currentYearMonth}`);
+  const nextYearMonth = getNextYearMonth();
+  Logger.log(`対象年月: ${currentYearMonth}, ${nextYearMonth}`);
 
   // 登録する予約の配列
   // type: 'basic' | 'date' | 'recurring' | 'businessDay'
   const reservations = [
+    // 当月の予約
     {
       type: 'businessDay',
       yearMonth: currentYearMonth,
+      businessDayType: 'last',
+      allDay: true,
+      title: '経費精算'
+    },
+    // 翌月の予約
+    {
+      type: 'businessDay',
+      yearMonth: nextYearMonth,
       businessDayType: 'last',
       allDay: true,
       title: '経費精算'
