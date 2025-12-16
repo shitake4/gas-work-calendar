@@ -10,12 +10,16 @@
  * - 各予約作成にはリトライ機能付き
  */
 function runCalendarReservations() {
+  // 実行時の年月を自動取得
+  const currentYearMonth = getCurrentYearMonth();
+  Logger.log(`対象年月: ${currentYearMonth}`);
+
   // 登録する予約の配列
   // type: 'basic' | 'date' | 'recurring' | 'businessDay'
   const reservations = [
     {
       type: 'businessDay',
-      yearMonth: '2025-12',
+      yearMonth: currentYearMonth,
       businessDayType: 'last',
       allDay: true,
       title: '経費精算'

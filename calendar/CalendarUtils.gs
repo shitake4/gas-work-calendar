@@ -3,6 +3,17 @@
  */
 
 /**
+ * 現在の年月を取得（YYYY-MM形式）
+ * @returns {string} 現在の年月（YYYY-MM形式）
+ */
+function getCurrentYearMonth() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+/**
  * 日時をパース
  * @param {Date|string} dateTime - DateオブジェクトまたはISO 8601形式文字列
  * @returns {Date} Dateオブジェクト
@@ -296,5 +307,80 @@ function getReservationExecutor(type) {
       return createBusinessDayEvent;
     default:
       return null;
+  }
+}
+
+/**
+ * 既存イベントとの重複をチェック
+ * 同一カレンダー上で、title, start日時, end日時, 終日フラグが一致するイベントが存在したら重複とみなす
+ * @param {Object} options - チェックオプション
+ * @param {string} options.title - タイトル
+ * @param {Date} options.startTime - 開始日時
+ * @param {Date} options.endTime - 終了日時（終日予定の場合はnull）
+ * @param {boolean} options.allDay - 終日予定かどうか
+ * @param {string} [options.calendarId] - カレンダーID
+ * @returns {Object} 結果 { isDuplicate: boolean, existingEvent?: CalendarEvent }
+ */
+function checkDuplicateEvent(options) {
+  try {
+    const settings = getCalendarSettings();
+    const calendarId = options.calendarId || settings.defaultCalendarId;
+    const calendar = CalendarApp.getCalendarById(calendarId);
+
+    if (!calendar) {
+      Logger.log(`カレンダーが見つかりません: ${calendarId}`);
+      return { isDuplicate: false };
+    }
+
+    const startTime = options.startTime;
+    let endTime = options.endTime;
+
+    // 検索範囲を設定（開始日時の前後1分程度でイベントを取得）
+    const searchStart = new Date(startTime.getTime() - 60000);
+    const searchEnd = new Date((endTime || startTime).getTime() + 60000);
+
+    const existingEvents = calendar.getEvents(searchStart, searchEnd);
+
+    for (const event of existingEvents) {
+      const eventTitle = event.getTitle();
+      const eventStart = event.getStartTime();
+      const eventEnd = event.getEndTime();
+      const eventAllDay = event.isAllDayEvent();
+
+      // 終日予定フラグの一致確認
+      if (eventAllDay !== options.allDay) {
+        continue;
+      }
+
+      // タイトルの一致確認
+      if (eventTitle !== options.title) {
+        continue;
+      }
+
+      // 日時の一致確認
+      if (options.allDay) {
+        // 終日予定の場合は日付のみ比較
+        const sameStartDate = eventStart.getFullYear() === startTime.getFullYear() &&
+                              eventStart.getMonth() === startTime.getMonth() &&
+                              eventStart.getDate() === startTime.getDate();
+        if (sameStartDate) {
+          Logger.log(`重複イベント検出: ${options.title} (${formatDate(startTime)})`);
+          return { isDuplicate: true, existingEvent: event };
+        }
+      } else {
+        // 通常予定の場合は日時を比較
+        const sameStart = eventStart.getTime() === startTime.getTime();
+        const sameEnd = eventEnd.getTime() === endTime.getTime();
+        if (sameStart && sameEnd) {
+          Logger.log(`重複イベント検出: ${options.title} (${formatDateTime(startTime)} - ${formatDateTime(endTime)})`);
+          return { isDuplicate: true, existingEvent: event };
+        }
+      }
+    }
+
+    return { isDuplicate: false };
+  } catch (error) {
+    Logger.log(`重複チェックエラー: ${error.message}`);
+    return { isDuplicate: false };
   }
 }

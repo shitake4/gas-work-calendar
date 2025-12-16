@@ -54,6 +54,35 @@ function createCalendarEvent(options) {
       throw new Error(`カレンダーが見つかりません: ${calendarId}`);
     }
 
+    // 重複チェック用の日時を事前に準備
+    let checkStartTime, checkEndTime;
+    if (isAllDay) {
+      checkStartTime = parseDateTime(options.startDate || options.startTime);
+      checkEndTime = null;
+    } else {
+      checkStartTime = parseDateTime(options.startTime);
+      checkEndTime = parseDateTime(options.endTime);
+    }
+
+    // 重複チェック
+    const duplicateCheck = checkDuplicateEvent({
+      title: options.title,
+      startTime: checkStartTime,
+      endTime: checkEndTime,
+      allDay: isAllDay,
+      calendarId: calendarId
+    });
+
+    if (duplicateCheck.isDuplicate) {
+      Logger.log(`スキップ（重複）: ${options.title}`);
+      return {
+        success: true,
+        skipped: true,
+        reason: '同じ予定が既に存在します',
+        existingEventId: duplicateCheck.existingEvent.getId()
+      };
+    }
+
     // イベントオプションの構築
     const eventOptions = buildEventOptions(options);
 
@@ -61,7 +90,7 @@ function createCalendarEvent(options) {
 
     if (isAllDay) {
       // 終日予定の作成
-      const startDate = parseDateTime(options.startDate || options.startTime);
+      const startDate = checkStartTime;
       const endDate = options.endDate ? parseDateTime(options.endDate) : null;
 
       if (endDate) {
@@ -76,8 +105,8 @@ function createCalendarEvent(options) {
       }
     } else {
       // 通常予定の作成
-      const startTime = parseDateTime(options.startTime);
-      const endTime = parseDateTime(options.endTime);
+      const startTime = checkStartTime;
+      const endTime = checkEndTime;
 
       // 開始日時 < 終了日時 のバリデーション
       if (startTime >= endTime) {
