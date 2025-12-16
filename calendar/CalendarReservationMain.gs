@@ -4,51 +4,71 @@
  */
 
 /**
- * 予約をまとめて登録する
+ * 予約をまとめて登録する（バッチ処理対応）
  * - 下の reservations 配列に登録したい予約を追加して実行
+ * - バッチ処理によりAPI呼び出し制限を考慮
+ * - 各予約作成にはリトライ機能付き
  */
 function runCalendarReservations() {
+  // 登録する予約の配列
+  // type: 'basic' | 'date' | 'recurring' | 'businessDay'
   const reservations = [
     {
       type: 'businessDay',
-      options: {
-        yearMonth: '2025-12',
-        businessDayType: 'last',
-        startTimeStr: '09:00',
-        endTimeStr: '10:00',
-        title: '経費精算'
-      }
+      yearMonth: '2025-12',
+      businessDayType: 'last',
+      allDay: true,
+      title: '経費精算'
     }
   ];
 
   if (reservations.length === 0) {
-    Logger.log('有効な予約がありません。reservations 配列で enabled を true に設定してください。');
+    Logger.log('有効な予約がありません。reservations 配列に予約を追加してください。');
     return;
   }
 
-  const results = reservations.map(item => {
-    const executor = getReservationExecutor(item.type);
-    if (!executor) {
-      Logger.log(`未対応の予約タイプです: ${item.type}`);
-      return { success: false, error: `未対応の予約タイプ: ${item.type}` };
-    }
-    return executor(item.options);
-  });
+  // バッチ処理オプション
+  const batchOptions = {
+    batchSize: 10,      // 10件ごとにスリープを挿入
+    batchDelayMs: 1000, // バッチ間の待機時間（1秒）
+    maxRetries: 3       // 各予定作成の最大リトライ回数
+  };
 
-  Logger.log(`予約登録が完了しました。成功: ${results.filter(r => r.success).length} 件 / 失敗: ${results.filter(r => !r.success).length} 件`);
+  // バッチ処理で予約を登録
+  const batchResult = createEventsInBatch(reservations, batchOptions);
+
+  Logger.log('========== 予約登録結果 ==========');
+  Logger.log(`成功: ${batchResult.successCount} 件`);
+  Logger.log(`失敗: ${batchResult.failureCount} 件`);
+
+  // 失敗した予約の詳細をログ出力
+  const failures = batchResult.results.filter(r => !r.result.success);
+  if (failures.length > 0) {
+    Logger.log('--- 失敗した予約 ---');
+    failures.forEach(f => {
+      Logger.log(`  - ${f.reservation.title}: ${f.result.error}`);
+    });
+  }
+
+  return batchResult;
 }
 
 /**
- * 予約タイプに応じた実行関数を返す
- * @param {string} type 予約タイプ（basic|date|recurring|businessDay）
- * @returns {Function|null} 実行関数
+ * 単一の予約を登録する（簡易実行用）
+ * @param {Object} reservation - 予約設定
+ * @returns {Object} 作成結果
  */
-function getReservationExecutor(type) {
-  const executors = {
-    basic: createCalendarEvent,
-    date: createCalendarEventByDate,
-    recurring: createRecurringEvent,
-    businessDay: createBusinessDayEvent
-  };
-  return executors[type] || null;
+function runSingleReservation(reservation) {
+  const executor = getReservationExecutor(reservation.type);
+  if (!executor) {
+    Logger.log(`未対応の予約タイプです: ${reservation.type}`);
+    return { success: false, error: `未対応の予約タイプ: ${reservation.type}` };
+  }
+
+  try {
+    return executeWithRetry(() => executor(reservation));
+  } catch (error) {
+    Logger.log(`予約作成エラー: ${error.message}`);
+    return { success: false, error: error.message };
+  }
 }

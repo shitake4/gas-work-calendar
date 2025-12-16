@@ -8,8 +8,9 @@
  * @param {string} options.yearMonth - 対象年月（必須、YYYY-MM形式）
  * @param {string} options.businessDayType - 営業日指定方法（'first', 'last', 'nth'）
  * @param {number} [options.nthDay] - 第N営業日（businessDayType='nth'時に必須）
- * @param {string} options.startTimeStr - 開始時刻（必須、HH:mm形式）
- * @param {string} options.endTimeStr - 終了時刻（必須、HH:mm形式）
+ * @param {string} [options.startTimeStr] - 開始時刻（終日でない場合必須、HH:mm形式）
+ * @param {string} [options.endTimeStr] - 終了時刻（終日でない場合必須、HH:mm形式）
+ * @param {boolean} [options.allDay] - 終日予定かどうか（任意）
  * @param {string} options.title - タイトル（必須）
  * @param {string} [options.description] - 説明（任意）
  * @param {string} [options.location] - 場所（任意）
@@ -31,14 +32,20 @@ function createBusinessDayEvent(options) {
     if (options.businessDayType === 'nth' && !options.nthDay) {
       throw new Error('第N営業日の指定が必要です');
     }
-    if (!options.startTimeStr) {
-      throw new Error('開始時刻は必須です');
-    }
-    if (!options.endTimeStr) {
-      throw new Error('終了時刻は必須です');
-    }
     if (!options.title) {
       throw new Error('タイトルは必須です');
+    }
+
+    const isAllDay = options.allDay === true;
+
+    // 終日予定でない場合は時刻が必須
+    if (!isAllDay) {
+      if (!options.startTimeStr) {
+        throw new Error('開始時刻は必須です');
+      }
+      if (!options.endTimeStr) {
+        throw new Error('終了時刻は必須です');
+      }
     }
 
     // 年月形式のバリデーション
@@ -59,12 +66,14 @@ function createBusinessDayEvent(options) {
       throw new Error(`無効な営業日指定方法です: ${options.businessDayType}`);
     }
 
-    // 時刻形式のバリデーション
-    if (!isValidTimeFormat(options.startTimeStr)) {
-      throw new Error(`無効な開始時刻形式です: ${options.startTimeStr}`);
-    }
-    if (!isValidTimeFormat(options.endTimeStr)) {
-      throw new Error(`無効な終了時刻形式です: ${options.endTimeStr}`);
+    // 終日予定でない場合は時刻形式のバリデーション
+    if (!isAllDay) {
+      if (!isValidTimeFormat(options.startTimeStr)) {
+        throw new Error(`無効な開始時刻形式です: ${options.startTimeStr}`);
+      }
+      if (!isValidTimeFormat(options.endTimeStr)) {
+        throw new Error(`無効な終了時刻形式です: ${options.endTimeStr}`);
+      }
     }
 
     const settings = getCalendarSettings();
@@ -97,27 +106,42 @@ function createBusinessDayEvent(options) {
         break;
     }
 
-    // 日時の構築
-    const [startHour, startMinute] = options.startTimeStr.split(':').map(Number);
-    const [endHour, endMinute] = options.endTimeStr.split(':').map(Number);
+    let result;
 
-    const startTime = new Date(targetDate);
-    startTime.setHours(startHour, startMinute, 0, 0);
+    if (isAllDay) {
+      // 終日予定の場合
+      result = createCalendarEvent({
+        title: options.title,
+        allDay: true,
+        startDate: targetDate,
+        description: options.description,
+        location: options.location,
+        guests: options.guests,
+        reminder: options.reminder,
+        calendarId: options.calendarId
+      });
+    } else {
+      // 通常予定の場合
+      const [startHour, startMinute] = options.startTimeStr.split(':').map(Number);
+      const [endHour, endMinute] = options.endTimeStr.split(':').map(Number);
 
-    const endTime = new Date(targetDate);
-    endTime.setHours(endHour, endMinute, 0, 0);
+      const startTime = new Date(targetDate);
+      startTime.setHours(startHour, startMinute, 0, 0);
 
-    // 基本関数を呼び出し
-    const result = createCalendarEvent({
-      title: options.title,
-      startTime: startTime,
-      endTime: endTime,
-      description: options.description,
-      location: options.location,
-      guests: options.guests,
-      reminder: options.reminder,
-      calendarId: options.calendarId
-    });
+      const endTime = new Date(targetDate);
+      endTime.setHours(endHour, endMinute, 0, 0);
+
+      result = createCalendarEvent({
+        title: options.title,
+        startTime: startTime,
+        endTime: endTime,
+        description: options.description,
+        location: options.location,
+        guests: options.guests,
+        reminder: options.reminder,
+        calendarId: options.calendarId
+      });
+    }
 
     if (result.success) {
       result.businessDay = targetDate;

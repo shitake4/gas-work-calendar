@@ -173,3 +173,128 @@ function getWeekday(dayNumber) {
   };
   return weekdayMap[dayNumber];
 }
+
+/**
+ * リトライ付きで関数を実行
+ * @param {Function} fn - 実行する関数
+ * @param {number} [maxRetries=3] - 最大リトライ回数
+ * @param {number} [initialDelayMs=1000] - 初回リトライ時の待機時間（ミリ秒）
+ * @returns {*} 関数の戻り値
+ * @throws {Error} 全てのリトライが失敗した場合
+ */
+function executeWithRetry(fn, maxRetries = 3, initialDelayMs = 1000) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return fn();
+    } catch (error) {
+      lastError = error;
+      Logger.log(`API呼び出し失敗（試行 ${attempt}/${maxRetries}）: ${error.message}`);
+
+      if (attempt < maxRetries) {
+        // 指数バックオフ: 1秒、2秒、4秒...
+        const delayMs = initialDelayMs * Math.pow(2, attempt - 1);
+        Logger.log(`${delayMs}ms後にリトライします...`);
+        Utilities.sleep(delayMs);
+      }
+    }
+  }
+
+  throw new Error(`${maxRetries}回のリトライ後も失敗: ${lastError.message}`);
+}
+
+/**
+ * 複数の予定を一括作成（バッチ処理）
+ * @param {Array<Object>} reservations - 予約設定の配列
+ * @param {Object} [batchOptions] - バッチ処理オプション
+ * @param {number} [batchOptions.batchSize=10] - 1バッチあたりの処理数
+ * @param {number} [batchOptions.batchDelayMs=1000] - バッチ間の待機時間（ミリ秒）
+ * @param {number} [batchOptions.maxRetries=3] - 各予定作成の最大リトライ回数
+ * @returns {Object} 結果 { success: boolean, results: Array, successCount: number, failureCount: number }
+ */
+function createEventsInBatch(reservations, batchOptions = {}) {
+  const {
+    batchSize = 10,
+    batchDelayMs = 1000,
+    maxRetries = 3
+  } = batchOptions;
+
+  const results = [];
+  let successCount = 0;
+  let failureCount = 0;
+
+  Logger.log(`バッチ処理開始: ${reservations.length}件の予約を処理します`);
+
+  for (let i = 0; i < reservations.length; i++) {
+    const reservation = reservations[i];
+
+    try {
+      // リトライ付きで予約作成を実行
+      const result = executeWithRetry(() => {
+        const executor = getReservationExecutor(reservation.type);
+        if (!executor) {
+          throw new Error(`不明な予約タイプ: ${reservation.type}`);
+        }
+        return executor(reservation);
+      }, maxRetries);
+
+      if (result.success) {
+        successCount++;
+        Logger.log(`予約作成成功 (${i + 1}/${reservations.length}): ${reservation.title}`);
+      } else {
+        failureCount++;
+        Logger.log(`予約作成失敗 (${i + 1}/${reservations.length}): ${reservation.title} - ${result.error}`);
+      }
+
+      results.push({
+        index: i,
+        reservation: reservation,
+        result: result
+      });
+    } catch (error) {
+      failureCount++;
+      Logger.log(`予約作成エラー (${i + 1}/${reservations.length}): ${reservation.title} - ${error.message}`);
+      results.push({
+        index: i,
+        reservation: reservation,
+        result: { success: false, error: error.message }
+      });
+    }
+
+    // バッチ区切りでスリープ（最後のアイテムを除く）
+    if ((i + 1) % batchSize === 0 && i < reservations.length - 1) {
+      Logger.log(`バッチ処理: ${batchDelayMs}ms待機中...`);
+      Utilities.sleep(batchDelayMs);
+    }
+  }
+
+  Logger.log(`バッチ処理完了: 成功=${successCount}件, 失敗=${failureCount}件`);
+
+  return {
+    success: failureCount === 0,
+    results: results,
+    successCount: successCount,
+    failureCount: failureCount
+  };
+}
+
+/**
+ * 予約タイプに応じた実行関数を返す
+ * @param {string} type - 予約タイプ ('basic', 'date', 'recurring', 'businessDay')
+ * @returns {Function|null} 実行関数
+ */
+function getReservationExecutor(type) {
+  switch (type) {
+    case 'basic':
+      return createCalendarEvent;
+    case 'date':
+      return createCalendarEventByDate;
+    case 'recurring':
+      return createRecurringEvent;
+    case 'businessDay':
+      return createBusinessDayEvent;
+    default:
+      return null;
+  }
+}

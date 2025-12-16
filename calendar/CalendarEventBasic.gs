@@ -8,8 +8,11 @@
  * 指定日時でカレンダー予約を作成
  * @param {Object} options - 予約オプション
  * @param {string} options.title - タイトル（必須）
- * @param {Date|string} options.startTime - 開始日時（必須）
- * @param {Date|string} options.endTime - 終了日時（必須）
+ * @param {Date|string} [options.startTime] - 開始日時（終日でない場合必須）
+ * @param {Date|string} [options.endTime] - 終了日時（終日でない場合必須）
+ * @param {boolean} [options.allDay] - 終日予定かどうか（任意）
+ * @param {Date|string} [options.startDate] - 終日予定の開始日（終日の場合必須）
+ * @param {Date|string} [options.endDate] - 終日予定の終了日（終日の場合任意、省略時は開始日と同じ）
  * @param {string} [options.description] - 説明（任意）
  * @param {string} [options.location] - 場所（任意）
  * @param {string[]} [options.guests] - 参加者メールアドレス（任意）
@@ -25,11 +28,22 @@ function createCalendarEvent(options) {
     if (!options.title) {
       throw new Error('タイトルは必須です');
     }
-    if (!options.startTime) {
-      throw new Error('開始日時は必須です');
-    }
-    if (!options.endTime) {
-      throw new Error('終了日時は必須です');
+
+    const isAllDay = options.allDay === true;
+
+    if (isAllDay) {
+      // 終日予定の場合
+      if (!options.startDate && !options.startTime) {
+        throw new Error('終日予定の場合、開始日（startDate）は必須です');
+      }
+    } else {
+      // 通常予定の場合
+      if (!options.startTime) {
+        throw new Error('開始日時は必須です');
+      }
+      if (!options.endTime) {
+        throw new Error('終了日時は必須です');
+      }
     }
 
     const settings = getCalendarSettings();
@@ -40,20 +54,38 @@ function createCalendarEvent(options) {
       throw new Error(`カレンダーが見つかりません: ${calendarId}`);
     }
 
-    // 日時のパース
-    const startTime = parseDateTime(options.startTime);
-    const endTime = parseDateTime(options.endTime);
-
-    // 開始日時 < 終了日時 のバリデーション
-    if (startTime >= endTime) {
-      throw new Error('開始日時は終了日時より前である必要があります');
-    }
-
     // イベントオプションの構築
     const eventOptions = buildEventOptions(options);
 
-    // イベント作成
-    const event = calendar.createEvent(options.title, startTime, endTime, eventOptions);
+    let event;
+
+    if (isAllDay) {
+      // 終日予定の作成
+      const startDate = parseDateTime(options.startDate || options.startTime);
+      const endDate = options.endDate ? parseDateTime(options.endDate) : null;
+
+      if (endDate) {
+        // 複数日にわたる終日予定
+        // CalendarApp.createAllDayEvent の endDate は翌日を指定する必要がある
+        const adjustedEndDate = new Date(endDate);
+        adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+        event = calendar.createAllDayEvent(options.title, startDate, adjustedEndDate, eventOptions);
+      } else {
+        // 1日のみの終日予定
+        event = calendar.createAllDayEvent(options.title, startDate, eventOptions);
+      }
+    } else {
+      // 通常予定の作成
+      const startTime = parseDateTime(options.startTime);
+      const endTime = parseDateTime(options.endTime);
+
+      // 開始日時 < 終了日時 のバリデーション
+      if (startTime >= endTime) {
+        throw new Error('開始日時は終了日時より前である必要があります');
+      }
+
+      event = calendar.createEvent(options.title, startTime, endTime, eventOptions);
+    }
 
     // リマインダー設定
     if (options.reminder) {
@@ -92,8 +124,9 @@ function createCalendarEvent(options) {
  * @param {number} options.year - 年（必須、YYYY形式）
  * @param {number} options.month - 月（必須、1-12）
  * @param {number} options.day - 日（必須、1-31）
- * @param {string} options.startTimeStr - 開始時刻（必須、HH:mm形式）
- * @param {string} options.endTimeStr - 終了時刻（必須、HH:mm形式）
+ * @param {string} [options.startTimeStr] - 開始時刻（終日でない場合必須、HH:mm形式）
+ * @param {string} [options.endTimeStr] - 終了時刻（終日でない場合必須、HH:mm形式）
+ * @param {boolean} [options.allDay] - 終日予定かどうか（任意）
  * @param {string} options.title - タイトル（必須）
  * @param {string} [options.description] - 説明（任意）
  * @param {string} [options.location] - 場所（任意）
@@ -108,14 +141,20 @@ function createCalendarEventByDate(options) {
     if (options.year === undefined || options.month === undefined || options.day === undefined) {
       throw new Error('年月日は必須です');
     }
-    if (!options.startTimeStr) {
-      throw new Error('開始時刻は必須です');
-    }
-    if (!options.endTimeStr) {
-      throw new Error('終了時刻は必須です');
-    }
     if (!options.title) {
       throw new Error('タイトルは必須です');
+    }
+
+    const isAllDay = options.allDay === true;
+
+    // 終日予定でない場合は時刻が必須
+    if (!isAllDay) {
+      if (!options.startTimeStr) {
+        throw new Error('開始時刻は必須です');
+      }
+      if (!options.endTimeStr) {
+        throw new Error('終了時刻は必須です');
+      }
     }
 
     // 日付のバリデーション（うるう年考慮）
@@ -123,32 +162,50 @@ function createCalendarEventByDate(options) {
       throw new Error(`無効な日付です: ${options.year}年${options.month}月${options.day}日`);
     }
 
-    // 時刻形式のバリデーション
-    if (!isValidTimeFormat(options.startTimeStr)) {
-      throw new Error(`無効な開始時刻形式です: ${options.startTimeStr}（HH:mm形式で入力してください）`);
+    if (isAllDay) {
+      // 終日予定の場合
+      const startDate = new Date(options.year, options.month - 1, options.day);
+
+      return createCalendarEvent({
+        title: options.title,
+        allDay: true,
+        startDate: startDate,
+        description: options.description,
+        location: options.location,
+        guests: options.guests,
+        reminder: options.reminder,
+        calendarId: options.calendarId
+      });
+    } else {
+      // 通常予定の場合
+
+      // 時刻形式のバリデーション
+      if (!isValidTimeFormat(options.startTimeStr)) {
+        throw new Error(`無効な開始時刻形式です: ${options.startTimeStr}（HH:mm形式で入力してください）`);
+      }
+      if (!isValidTimeFormat(options.endTimeStr)) {
+        throw new Error(`無効な終了時刻形式です: ${options.endTimeStr}（HH:mm形式で入力してください）`);
+      }
+
+      // 日時の構築
+      const [startHour, startMinute] = options.startTimeStr.split(':').map(Number);
+      const [endHour, endMinute] = options.endTimeStr.split(':').map(Number);
+
+      const startTime = new Date(options.year, options.month - 1, options.day, startHour, startMinute);
+      const endTime = new Date(options.year, options.month - 1, options.day, endHour, endMinute);
+
+      // 基本関数を呼び出し
+      return createCalendarEvent({
+        title: options.title,
+        startTime: startTime,
+        endTime: endTime,
+        description: options.description,
+        location: options.location,
+        guests: options.guests,
+        reminder: options.reminder,
+        calendarId: options.calendarId
+      });
     }
-    if (!isValidTimeFormat(options.endTimeStr)) {
-      throw new Error(`無効な終了時刻形式です: ${options.endTimeStr}（HH:mm形式で入力してください）`);
-    }
-
-    // 日時の構築
-    const [startHour, startMinute] = options.startTimeStr.split(':').map(Number);
-    const [endHour, endMinute] = options.endTimeStr.split(':').map(Number);
-
-    const startTime = new Date(options.year, options.month - 1, options.day, startHour, startMinute);
-    const endTime = new Date(options.year, options.month - 1, options.day, endHour, endMinute);
-
-    // 基本関数を呼び出し
-    return createCalendarEvent({
-      title: options.title,
-      startTime: startTime,
-      endTime: endTime,
-      description: options.description,
-      location: options.location,
-      guests: options.guests,
-      reminder: options.reminder,
-      calendarId: options.calendarId
-    });
 
   } catch (error) {
     Logger.log(`予定作成エラー: ${error.message}`);
