@@ -46,7 +46,6 @@ async function build() {
 
     // IIFE のラッパーを削除し、グローバル関数として展開
     // esbuildが生成する形式: var GasWorkCalendar = (() => { ... })();
-    // GASではglobalThisへの代入がそのまま動作するため、IIFEを即時実行形式に変更
 
     // バンドル内容を調整（IIFEの戻り値を使わない形式に）
     bundleContent = bundleContent
@@ -54,6 +53,89 @@ async function build() {
       .replace(/var GasWorkCalendar = /, '')
       // 末尾の ; を削除して即時実行関数のみにする
       .replace(/;\s*$/, '');
+
+    // GASエディタから実行可能なトップレベル関数を追加
+    // GASでは function キーワードでトップレベルに定義された関数のみが実行可能
+    const globalFunctions = `
+
+// ============================================================
+// GASエディタから実行可能な関数
+// ============================================================
+
+/**
+ * 予約を実行する（メイン関数）
+ * トリガーからこの関数を呼び出してください
+ */
+function runCalendarReservations() {
+  return globalThis.runCalendarReservations();
+}
+
+/**
+ * トリガーをセットアップする
+ * 初回セットアップ時に手動で実行してください
+ */
+function setupTriggers() {
+  return globalThis.setupTriggers();
+}
+
+/**
+ * 現在のトリガー一覧を表示
+ */
+function listTriggers() {
+  return globalThis.listTriggers();
+}
+
+/**
+ * すべてのトリガーを削除
+ */
+function deleteAllTriggers() {
+  return globalThis.deleteAllTriggers();
+}
+
+/**
+ * 現在の設定を表示
+ */
+function showCurrentSettings() {
+  return globalThis.showCurrentSettings();
+}
+
+/**
+ * 設定を初期化（日本向けデフォルト値）
+ */
+function initializeCalendarSettings() {
+  return globalThis.initializeCalendarSettings();
+}
+
+/**
+ * 営業日予定を作成
+ */
+function createBusinessDayEvent(options) {
+  return globalThis.createBusinessDayEvent(options);
+}
+
+/**
+ * カレンダー予定を作成
+ */
+function createCalendarEvent(options) {
+  return globalThis.createCalendarEvent(options);
+}
+
+/**
+ * 年月日指定でカレンダー予定を作成
+ */
+function createCalendarEventByDate(options) {
+  return globalThis.createCalendarEventByDate(options);
+}
+
+/**
+ * 指定月の営業日数を取得
+ */
+function getBusinessDayCount(yearMonth, holidayCalendarId) {
+  return globalThis.getBusinessDayCount(yearMonth, holidayCalendarId);
+}
+`;
+
+    bundleContent += globalFunctions;
 
     // ファイルを保存
     fs.writeFileSync(path.join(distDir, 'bundle.gs'), bundleContent);
