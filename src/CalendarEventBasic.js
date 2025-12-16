@@ -4,6 +4,91 @@
  * - 年月日指定での予約作成
  */
 
+import { getCalendarSettings } from './CalendarSettings.js';
+import {
+  parseDateTime,
+  isValidDate,
+  isValidTimeFormat,
+  buildEventOptions,
+  formatDate,
+  formatDateTime
+} from './CalendarUtils.js';
+
+/**
+ * 既存イベントとの重複をチェック
+ * 同一カレンダー上で、title, start日時, end日時, 終日フラグが一致するイベントが存在したら重複とみなす
+ * @param {Object} options - チェックオプション
+ * @param {string} options.title - タイトル
+ * @param {Date} options.startTime - 開始日時
+ * @param {Date} options.endTime - 終了日時（終日予定の場合はnull）
+ * @param {boolean} options.allDay - 終日予定かどうか
+ * @param {string} [options.calendarId] - カレンダーID
+ * @returns {Object} 結果 { isDuplicate: boolean, existingEvent?: CalendarEvent }
+ */
+export function checkDuplicateEvent(options) {
+  try {
+    const settings = getCalendarSettings();
+    const calendarId = options.calendarId || settings.defaultCalendarId;
+    const calendar = CalendarApp.getCalendarById(calendarId);
+
+    if (!calendar) {
+      Logger.log(`カレンダーが見つかりません: ${calendarId}`);
+      return { isDuplicate: false };
+    }
+
+    const startTime = options.startTime;
+    let endTime = options.endTime;
+
+    // 検索範囲を設定（開始日時の前後1分程度でイベントを取得）
+    const searchStart = new Date(startTime.getTime() - 60000);
+    const searchEnd = new Date((endTime || startTime).getTime() + 60000);
+
+    const existingEvents = calendar.getEvents(searchStart, searchEnd);
+
+    for (const event of existingEvents) {
+      const eventTitle = event.getTitle();
+      const eventStart = event.getStartTime();
+      const eventEnd = event.getEndTime();
+      const eventAllDay = event.isAllDayEvent();
+
+      // 終日予定フラグの一致確認
+      if (eventAllDay !== options.allDay) {
+        continue;
+      }
+
+      // タイトルの一致確認
+      if (eventTitle !== options.title) {
+        continue;
+      }
+
+      // 日時の一致確認
+      if (options.allDay) {
+        // 終日予定の場合は日付のみ比較
+        const sameStartDate = eventStart.getFullYear() === startTime.getFullYear() &&
+                              eventStart.getMonth() === startTime.getMonth() &&
+                              eventStart.getDate() === startTime.getDate();
+        if (sameStartDate) {
+          Logger.log(`重複イベント検出: ${options.title} (${formatDate(startTime)})`);
+          return { isDuplicate: true, existingEvent: event };
+        }
+      } else {
+        // 通常予定の場合は日時を比較
+        const sameStart = eventStart.getTime() === startTime.getTime();
+        const sameEnd = eventEnd.getTime() === endTime.getTime();
+        if (sameStart && sameEnd) {
+          Logger.log(`重複イベント検出: ${options.title} (${formatDateTime(startTime)} - ${formatDateTime(endTime)})`);
+          return { isDuplicate: true, existingEvent: event };
+        }
+      }
+    }
+
+    return { isDuplicate: false };
+  } catch (error) {
+    Logger.log(`重複チェックエラー: ${error.message}`);
+    return { isDuplicate: false };
+  }
+}
+
 /**
  * 指定日時でカレンダー予約を作成
  * @param {Object} options - 予約オプション
@@ -22,7 +107,7 @@
  * @param {string} [options.calendarId] - カレンダーID（任意）
  * @returns {Object} 作成結果 { success: boolean, eventId?: string, error?: string }
  */
-function createCalendarEvent(options) {
+export function createCalendarEvent(options) {
   try {
     // 必須パラメータのバリデーション
     if (!options.title) {
@@ -164,7 +249,7 @@ function createCalendarEvent(options) {
  * @param {string} [options.calendarId] - カレンダーID（任意）
  * @returns {Object} 作成結果 { success: boolean, eventId?: string, error?: string }
  */
-function createCalendarEventByDate(options) {
+export function createCalendarEventByDate(options) {
   try {
     // 必須パラメータのバリデーション
     if (options.year === undefined || options.month === undefined || options.day === undefined) {

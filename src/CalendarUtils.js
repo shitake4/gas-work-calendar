@@ -2,6 +2,8 @@
  * カレンダー関連ユーティリティ関数
  */
 
+import { getCompanyHolidaysInMonth } from './CompanyHolidays.js';
+
 /**
  * 現在の年月を取得（YYYY-MM形式）
  * @returns {string} 現在の年月（YYYY-MM形式）
@@ -116,6 +118,67 @@ export function formatDateTime(date) {
 }
 
 /**
+ * 指定月の祝日を取得（法定休日のみ）
+ * @param {number} year - 年
+ * @param {number} month - 月（1-12）
+ * @param {string} holidayCalendarId - 祝日カレンダーID
+ * @returns {Date[]} 祝日の配列
+ */
+export function getPublicHolidaysInMonth(year, month, holidayCalendarId) {
+  try {
+    const holidayCalendar = CalendarApp.getCalendarById(holidayCalendarId);
+    if (!holidayCalendar) {
+      Logger.log(`祝日カレンダーが見つかりません: ${holidayCalendarId}`);
+      return [];
+    }
+
+    const startOfMonth = new Date(year, month - 1, 1);
+    const endOfMonth = new Date(year, month, 0, 23, 59, 59);
+
+    const events = holidayCalendar.getEvents(startOfMonth, endOfMonth);
+    return events.map(event => {
+      const date = event.getStartTime();
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    });
+  } catch (error) {
+    Logger.log(`祝日取得エラー: ${error.message}`);
+    return [];
+  }
+}
+
+/**
+ * 指定月の全休日を取得（法定休日 + 会社休日）
+ * @param {number} year - 年
+ * @param {number} month - 月（1-12）
+ * @param {string} holidayCalendarId - 祝日カレンダーID
+ * @returns {Date[]} 休日の配列（重複なし）
+ */
+export function getHolidaysInMonth(year, month, holidayCalendarId) {
+  // 法定休日を取得
+  const publicHolidays = getPublicHolidaysInMonth(year, month, holidayCalendarId);
+
+  // 会社休日を取得
+  const companyHolidays = getCompanyHolidaysInMonth(year, month);
+
+  // 重複を除いて結合
+  const allHolidays = [...publicHolidays];
+
+  for (const companyHoliday of companyHolidays) {
+    const isDuplicate = allHolidays.some(holiday =>
+      holiday.getFullYear() === companyHoliday.getFullYear() &&
+      holiday.getMonth() === companyHoliday.getMonth() &&
+      holiday.getDate() === companyHoliday.getDate()
+    );
+
+    if (!isDuplicate) {
+      allHolidays.push(companyHoliday);
+    }
+  }
+
+  return allHolidays;
+}
+
+/**
  * 指定月の営業日を取得
  * @param {number} year - 年
  * @param {number} month - 月（1-12）
@@ -166,4 +229,34 @@ export function getWeekday(dayNumber) {
     6: CalendarApp.Weekday.SATURDAY
   };
   return weekdayMap[dayNumber];
+}
+
+/**
+ * リトライ付きで関数を実行
+ * @param {Function} fn - 実行する関数
+ * @param {number} [maxRetries=3] - 最大リトライ回数
+ * @param {number} [initialDelayMs=1000] - 初回リトライ時の待機時間（ミリ秒）
+ * @returns {*} 関数の戻り値
+ * @throws {Error} 全てのリトライが失敗した場合
+ */
+export function executeWithRetry(fn, maxRetries = 3, initialDelayMs = 1000) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return fn();
+    } catch (error) {
+      lastError = error;
+      Logger.log(`API呼び出し失敗（試行 ${attempt}/${maxRetries}）: ${error.message}`);
+
+      if (attempt < maxRetries) {
+        // 指数バックオフ: 1秒、2秒、4秒...
+        const delayMs = initialDelayMs * Math.pow(2, attempt - 1);
+        Logger.log(`${delayMs}ms後にリトライします...`);
+        Utilities.sleep(delayMs);
+      }
+    }
+  }
+
+  throw new Error(`${maxRetries}回のリトライ後も失敗: ${lastError.message}`);
 }

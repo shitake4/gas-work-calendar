@@ -4,11 +4,14 @@
   "description": "Google Apps Script (GAS) で営業日・指定日・繰り返し条件に基づいてGoogle カレンダーへ自動的に予定を作成するライブラリ",
   "type": "module",
   "scripts": {
+    "build": "node scripts/build.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepush": "npm run build"
   },
   "devDependencies": {
+    "esbuild": "^0.24.0",
     "vitest": "^2.1.0"
   },
   "keywords": [

@@ -4,7 +4,7 @@
 ![Last Commit](https://img.shields.io/github/last-commit/shitake4/gas-work-calendar)
 ![Repo Size](https://img.shields.io/github/repo-size/shitake4/gas-work-calendar)
 
-Google Apps Script (GAS) で 
+Google Apps Script (GAS) で
 **営業日・指定日・繰り返し条件に基づいて Google カレンダーへ自動的に予定を作成するライブラリ**です。
 
 - 月初・月末・第N営業日の自動予約
@@ -20,56 +20,82 @@ Google Apps Script (GAS) で
 
 ## セットアップ
 
-### 1. Google App Scriptsの設定
+### 1. 依存パッケージのインストール
+
+```bash
+$ npm install
+```
+
+### 2. ビルド
+
+```bash
+$ npm run build
+```
+
+`src/` 配下のES Modulesコードから `bundle.gs` が生成されます。
+
+### 3. Google App Scriptsの設定
 
 ```bash
 $ clasp login
 ```
 
-### 2. コードのアップロード
+### 4. コードのアップロード
 
 ```bash
 $ clasp push
 ```
 
-### 3. トリガーの設定
-1. 初回セットアップ: GAS上で setupTriggers() を手動実行
-2. 設定変更時: TRIGGER_CONFIG を編集 → clasp push → setupTriggers() を実行
-3. トリガー確認: listTriggers() を実行
+### 5. トリガーの設定
+1. 初回セットアップ: GAS上で `setupTriggers()` を手動実行
+2. 設定変更時: `src/TriggerManager.js` の `TRIGGER_CONFIG` を編集 → `npm run build` → `clasp push` → `setupTriggers()` を実行
+3. トリガー確認: `listTriggers()` を実行
 
 設定例:
-```gas
-  // 毎日9時に実行
-  { functionName: 'execute', type: 'everyDays', hour: 9, enabled: true }
+```javascript
+// 毎日9時に実行
+{ functionName: 'runCalendarReservations', type: 'everyDays', hour: 9, enabled: true }
 
-  // 毎週月曜10時に実行
-  { functionName: 'execute', type: 'everyWeeks', dayOfWeek: 1, hour: 10, enabled: true }
+// 毎週月曜10時に実行
+{ functionName: 'runCalendarReservations', type: 'everyWeeks', dayOfWeek: 1, hour: 10, enabled: true }
 
-  // 5分ごとに実行
-  { functionName: 'execute', type: 'everyMinutes', interval: 5, enabled: true }
+// 5分ごとに実行
+{ functionName: 'runCalendarReservations', type: 'everyMinutes', interval: 5, enabled: true }
 
-  // 無効化（enabledをfalse）
-  { functionName: 'execute', type: 'everyMonths', dayOfMonth: 1, hour: 9, enabled: false }
+// 無効化（enabledをfalse）
+{ functionName: 'runCalendarReservations', type: 'everyMonths', dayOfMonth: 1, hour: 9, enabled: false }
 ```
 
-### 4. 権限の承認
+### 6. 権限の承認
 
 初回実行時にGoogleカレンダーへのアクセス権限の承認が必要です。
 
 ## ファイル構成
 
 ```
-├── calendar/
-│   ├── CalendarSettings.gs         # 設定管理
-│   ├── CalendarUtils.gs            # ユーティリティ関数
-│   ├── CalendarEventBasic.gs       # 基本的な予定作成
-│   ├── CalendarEventRecurring.gs   # 繰り返し予定作成
-│   ├── CalendarEventBusinessDay.gs # 営業日予定作成
-│   ├── CalendarReservationRunner.gs # 予約実行エントリ
-│   └── CalendarReservationMain.gs   # 予約設定/実行用メイン
-├── appsscript.json            # GAS設定
+├── src/                          # ソースコード（ES Modules）
+│   ├── index.js                  # エントリーポイント（グローバル登録）
+│   ├── CalendarSettings.js       # 設定管理
+│   ├── CalendarUtils.js          # ユーティリティ関数
+│   ├── CalendarEventBasic.js     # 基本的な予定作成
+│   ├── CalendarEventBusinessDay.js # 営業日予定作成
+│   ├── CompanyHolidays.js        # 会社休日定義
+│   ├── TriggerManager.js         # トリガー管理
+│   ├── TriggerValidation.js      # トリガーバリデーション
+│   └── EntryPoint.js             # 予約実行エントリ
+├── tests/                        # テストコード
+│   ├── mocks/
+│   │   └── gas-api.js            # GAS API モック
+│   ├── setup.js                  # テストセットアップ
+│   └── *.test.js                 # テストファイル
+├── scripts/
+│   └── build.js                  # ビルドスクリプト
+├── bundle.gs                     # 生成されるGASファイル（自動生成）
+├── appsscript.json               # GAS設定
+├── package.json
+├── vitest.config.js
 └── docs/
-    └── calendar-event.md      # 詳細ドキュメント
+    └── calendar-event.md         # 詳細ドキュメント
 ```
 
 ## 開発・テスト
@@ -79,6 +105,16 @@ $ clasp push
 ```bash
 $ npm install
 ```
+
+### ビルド
+
+```bash
+# GAS用にバンドル
+$ npm run build
+```
+
+`src/` 配下のES Modulesコードを `bundle.gs` にバンドルします。
+esbuildを使用してIIFE形式で出力し、全関数をグローバルスコープに登録します。
 
 ### テストの実行
 
@@ -93,22 +129,20 @@ $ npm run test:watch
 $ npm run test:coverage
 ```
 
+### 開発フロー
+
+1. `src/` 配下のファイルを編集
+2. `npm test` でテスト実行
+3. `npm run build` でビルド
+4. `clasp push` でGASにアップロード
+
 ### テスト構成
 
 - **テストフレームワーク**: Vitest
 - **テストファイル**: `tests/` ディレクトリ配下
-- **モック**: `tests/mocks/` ディレクトリにGAS固有APIのモックを配置
+- **モック**: `tests/mocks/gas-api.js` にGAS固有APIのモックを配置
 
-```
-tests/
-├── mocks/
-│   └── gas-api.js          # GAS API モック（PropertiesService, CalendarApp等）
-├── setup.js                # テストセットアップ
-├── CalendarUtils.test.js   # ユーティリティ関数のテスト
-├── CalendarSettings.test.js # 設定管理のテスト
-├── CompanyHolidays.test.js # 会社休日のテスト
-└── TriggerValidation.test.js # トリガーバリデーションのテスト
-```
+GAS固有のAPI（`PropertiesService`, `CalendarApp`, `ScriptApp` など）はモック化してNode.js環境でテスト可能です。
 
 ### CI
 

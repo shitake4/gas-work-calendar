@@ -9,3 +9,5 @@ coverage/
 
 # OS files
 .DS_Store
+
+bundle.gs

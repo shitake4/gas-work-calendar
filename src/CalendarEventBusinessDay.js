@@ -2,6 +2,15 @@
  * 営業日指定での予約作成機能
  */
 
+import { getCalendarSettings } from './CalendarSettings.js';
+import {
+  isValidTimeFormat,
+  getHolidaysInMonth,
+  getBusinessDaysInMonth,
+  formatDate
+} from './CalendarUtils.js';
+import { createCalendarEvent } from './CalendarEventBasic.js';
+
 /**
  * 営業日指定でカレンダー予約を作成
  * @param {Object} options - 予約オプション
@@ -20,7 +29,7 @@
  * @param {string} [options.holidayCalendarId] - 祝日カレンダーID（任意）
  * @returns {Object} 作成結果 { success: boolean, eventId?: string, businessDay?: Date, error?: string }
  */
-function createBusinessDayEvent(options) {
+export function createBusinessDayEvent(options) {
   try {
     // 必須パラメータのバリデーション
     if (!options.yearMonth) {
@@ -165,7 +174,7 @@ function createBusinessDayEvent(options) {
  * @param {string} [holidayCalendarId] - 祝日カレンダーID（任意）
  * @returns {Object} 結果 { success: boolean, count?: number, dates?: Date[], error?: string }
  */
-function getBusinessDayCount(yearMonth, holidayCalendarId) {
+export function getBusinessDayCount(yearMonth, holidayCalendarId) {
   try {
     const yearMonthMatch = yearMonth.match(/^(\d{4})-(\d{2})$/);
     if (!yearMonthMatch) {
