@@ -6,11 +6,10 @@ Googleカレンダーに予定を作成するための機能群です。
 
 - [設定](#設定)
 - [関数一覧](#関数一覧)
-- [予約実行エントリ](#予約実行エントリ)
 - [予約設定メイン](#予約設定メイン)
 - [1. 基本的な予定作成](#1-基本的な予定作成)
 - [2. 年月日指定での予定作成](#2-年月日指定での予定作成)
-- [3. 営業日指定での予定作成](#4-営業日指定での予定作成)
+- [3. 営業日指定での予定作成](#3-営業日指定での予定作成)
 - [エラーハンドリング](#エラーハンドリング)
 - [使用例](#使用例)
 
@@ -62,41 +61,14 @@ showCurrentSettings();
 |-------|------|
 | `createCalendarEvent(options)` | 日時指定で予定を作成 |
 | `createCalendarEventByDate(options)` | 年月日+時刻で予定を作成 |
-| `createRecurringEvent(options)` | 繰り返し予定を作成 |
 | `createBusinessDayEvent(options)` | 営業日指定で予定を作成 |
 | `getBusinessDayCount(yearMonth)` | 指定月の営業日数を取得 |
 
 ---
 
-## 予約実行エントリ
-
-`calendar/CalendarReservationRunner.gs` に、各作成関数を呼び出すラッパーを用意しています。
-
-| 関数名 | 呼び出し先 | 用途 |
-|-------|-----------|------|
-| `registerBasicReservation(options)` | `createCalendarEvent` | 日時指定の予約作成 |
-| `registerDateReservation(options)` | `createCalendarEventByDate` | 年月日+時刻指定の予約作成 |
-| `registerRecurringReservation(options)` | `createRecurringEvent` | 繰り返し予約作成 |
-| `registerBusinessDayReservation(options)` | `createBusinessDayEvent` | 営業日指定の予約作成 |
-
-例：
-
-```javascript
-// 営業日指定の予約を登録
-registerBusinessDayReservation({
-  yearMonth: '2025-01',
-  businessDayType: 'first',
-  startTimeStr: '09:00',
-  endTimeStr: '10:00',
-  title: '月初ミーティング'
-});
-```
-
----
-
 ## 予約設定メイン
 
-`calendar/CalendarReservationMain.gs` で、実行したい予約をまとめて設定できます。Java の `main` のように、この関数を実行すると有効な予約が一括で登録されます。
+`calendar/CalendarEntryPoint.gs` で、実行したい予約をまとめて設定できます。Java の `main` のように、この関数を実行すると有効な予約が一括で登録されます。
 
 ```javascript
 function runCalendarReservations() {
@@ -377,13 +349,6 @@ if (!result.success) {
 |-------|------|
 | `exampleBasicEvent()` | 基本的な予定作成 |
 | `exampleDateEvent()` | 年月日指定での予定作成 |
-| `exampleWeeklyEvent()` | 毎週月曜日の繰り返し |
-| `exampleMultipleWeekdaysEvent()` | 毎週月・水・金の繰り返し |
-| `exampleBiweeklyEvent()` | 2週間ごとの繰り返し |
-| `exampleMonthlyNthWeekdayEvent()` | 毎月第1金曜日 |
-| `exampleMonthlyDateEvent()` | 毎月15日 |
-| `exampleDailyEvent()` | 毎日の繰り返し |
-| `exampleYearlyEvent()` | 毎年の繰り返し |
 | `exampleFirstBusinessDayEvent()` | 第1営業日 |
 | `exampleLastBusinessDayEvent()` | 最終営業日 |
 | `exampleNthBusinessDayEvent()` | 第5営業日 |

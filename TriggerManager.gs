@@ -23,7 +23,7 @@
  */
 const TRIGGER_CONFIG = [
   {
-    functionName: 'execute',
+    functionName: 'runCalendarReservations',
     type: 'everyMonths',
     dayOfMonth: 1,
     hour: 9,
