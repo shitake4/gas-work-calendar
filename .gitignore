@@ -1,2 +1,11 @@
 .claude/settings.local.json
 .clasp.json
+
+# Dependencies
+node_modules/
+
+# Test coverage
+coverage/
+
+# OS files
+.DS_Store

@@ -72,6 +72,48 @@ $ clasp push
     └── calendar-event.md      # 詳細ドキュメント
 ```
 
+## 開発・テスト
+
+### 環境構築
+
+```bash
+$ npm install
+```
+
+### テストの実行
+
+```bash
+# テストを実行
+$ npm test
+
+# ウォッチモードでテストを実行（ファイル変更を監視）
+$ npm run test:watch
+
+# カバレッジレポート付きでテストを実行
+$ npm run test:coverage
+```
+
+### テスト構成
+
+- **テストフレームワーク**: Vitest
+- **テストファイル**: `tests/` ディレクトリ配下
+- **モック**: `tests/mocks/` ディレクトリにGAS固有APIのモックを配置
+
+```
+tests/
+├── mocks/
+│   └── gas-api.js          # GAS API モック（PropertiesService, CalendarApp等）
+├── setup.js                # テストセットアップ
+├── CalendarUtils.test.js   # ユーティリティ関数のテスト
+├── CalendarSettings.test.js # 設定管理のテスト
+├── CompanyHolidays.test.js # 会社休日のテスト
+└── TriggerValidation.test.js # トリガーバリデーションのテスト
+```
+
+### CI
+
+GitHub Actionsでプッシュ・PR時に自動テストが実行されます。
+
 ## License
 
 Gas Work Calendar is released under the MIT License. See the [LICENSE](LICENSE) file for details.
