@@ -34,30 +34,19 @@ $ npm run build
 
 `src/` 配下のES Modulesコードから `bundle.gs` が生成されます。
 
-## GASへのアップロード
-### 1. GASプロジェクトの初期化
+### 3. Google App Scriptsの設定
 
 ```bash
 $ clasp login
-$ clasp create --type standalone --title "gasWorkCalendar"
 ```
 
-### 2. 登録する予約の作成
-TODO: reservations.config.js.sampleをコピー
+### 4. コードのアップロード
 
-```js
-
-```
-
-### 3. コードのpush
-
-```shell
-$ npm run build
+```bash
 $ clasp push
 ```
 
-
-### 4. トリガーの設定
+### 5. トリガーの設定
 1. 初回セットアップ: GAS上で `setupTriggers()` を手動実行
 2. 設定変更時: `src/TriggerManager.js` の `TRIGGER_CONFIG` を編集 → `npm run build` → `clasp push` → `setupTriggers()` を実行
 3. トリガー確認: `listTriggers()` を実行
@@ -76,7 +65,6 @@ $ clasp push
 // 無効化（enabledをfalse）
 { functionName: 'runCalendarReservations', type: 'everyMonths', dayOfMonth: 1, hour: 9, enabled: false }
 ```
-
 
 ### 6. 権限の承認
 
