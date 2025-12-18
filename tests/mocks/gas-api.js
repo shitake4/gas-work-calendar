@@ -54,7 +54,7 @@ export const Utilities = {
     }
     return date.toISOString();
   },
-  sleep: (ms) => {
+  sleep: (_ms) => {
     // テスト環境では実際にスリープしない
   }
 };
@@ -183,7 +183,7 @@ export const ScriptApp = {
             }
           };
         },
-        everyDays: (n) => ({
+        everyDays: (_n) => ({
           atHour: (hour) => {
             triggerConfig.type = 'CLOCK';
             triggerConfig.hour = hour;
@@ -195,7 +195,7 @@ export const ScriptApp = {
             };
           }
         }),
-        everyWeeks: (n) => ({
+        everyWeeks: (_n) => ({
           onWeekDay: (day) => ({
             atHour: (hour) => {
               triggerConfig.type = 'CLOCK';

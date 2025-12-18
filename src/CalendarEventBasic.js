@@ -37,7 +37,7 @@ export function checkDuplicateEvent(options) {
     }
 
     const startTime = options.startTime;
-    let endTime = options.endTime;
+    const endTime = options.endTime;
 
     // 検索範囲を設定（開始日時の前後1分程度でイベントを取得）
     const searchStart = new Date(startTime.getTime() - 60000);

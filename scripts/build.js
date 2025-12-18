@@ -17,7 +17,7 @@ async function build() {
 
   try {
     // esbuild でバンドル
-    const result = await esbuild.build({
+    await esbuild.build({
       entryPoints: [path.join(rootDir, 'src/index.js')],
       bundle: true,
       format: 'iife',
