@@ -1,0 +1,6 @@
+# clasp push で除外するファイル
+# bundle.gs と appsscript.json のみをプッシュ
+
+**/*
+!bundle.gs
+!appsscript.json

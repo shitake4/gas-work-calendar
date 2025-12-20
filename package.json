@@ -1,0 +1,31 @@
+{
+  "name": "gas-work-calendar",
+  "version": "1.0.0",
+  "description": "Google Apps Script (GAS) で営業日・指定日・繰り返し条件に基づいてGoogle カレンダーへ自動的に予定を作成するライブラリ",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prepush": "npm run build"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.0",
+    "eslint": "^9.39.2",
+    "globals": "^16.5.0",
+    "vitest": "^2.1.0"
+  },
+  "keywords": [
+    "google-apps-script",
+    "gas",
+    "calendar",
+    "business-day"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "dedent": "^1.7.1"
+  }
+}
