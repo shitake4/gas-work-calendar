@@ -202,17 +202,24 @@ function createCalendarEvent(options) {
     }
 
     // リマインダー設定
+    event.removeAllReminders();
     if (options.reminder) {
-      event.removeAllReminders();
+      // メールリマインダー（単一値または配列に対応）
       if (options.reminder.email) {
-        event.addEmailReminder(options.reminder.email);
+        const emailReminders = Array.isArray(options.reminder.email)
+          ? options.reminder.email
+          : [options.reminder.email];
+        emailReminders.forEach(minutes => event.addEmailReminder(minutes));
       }
+      // ポップアップリマインダー（単一値または配列に対応）
       if (options.reminder.popup) {
-        event.addPopupReminder(options.reminder.popup);
+        const popupReminders = Array.isArray(options.reminder.popup)
+          ? options.reminder.popup
+          : [options.reminder.popup];
+        popupReminders.forEach(minutes => event.addPopupReminder(minutes));
       }
     } else {
       // デフォルトリマインダー
-      event.removeAllReminders();
       event.addPopupReminder(settings.defaultReminderMinutes);
     }
 
