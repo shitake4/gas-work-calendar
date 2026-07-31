@@ -16,16 +16,15 @@ Google Apps Script (GAS) で **営業日・指定日に基づいて Google カ�
 ## 前提条件
 
 - **Node.js**: v20以上
-- **clasp**: グローバルインストール済み
 - **Googleアカウント**: Google Apps Script APIが有効化されていること
 
 ```bash
-# claspのインストール（未インストールの場合）
-$ npm install -g @google/clasp
-
 # Google Apps Script APIの有効化
 # https://script.google.com/home/usersettings で「Google Apps Script API」をオンにする
 ```
+
+`clasp` は devDependencies に含まれているため、個別インストールは不要です（`npm install` 後に `npx clasp` で実行できます）。
+
 - 参照: [google/clasp: 🔗 Command Line Apps Script Projects](https://github.com/google/clasp?tab=readme-ov-file#install)
 
 ## セットアップ
@@ -61,7 +60,7 @@ $ npm run build
 
 ```bash
 # Googleアカウントでログイン
-$ clasp login
+$ npm run clasp:login
 ```
 
 ### 4. GASプロジェクトの作成
@@ -70,14 +69,14 @@ $ clasp login
 
 ```bash
 # 新規スタンドアロンスクリプトを作成
-$ clasp create --title "Gas Work Calendar" --type standalone
+$ npx clasp create --title "Gas Work Calendar" --type standalone
 ```
 
 既存のプロジェクトに接続する場合：
 
 ```bash
 # 既存プロジェクトをclone（スクリプトIDはGASエディタのURLから取得）
-$ clasp clone <スクリプトID>
+$ npx clasp clone <スクリプトID>
 ```
 
 > **Note**: `.clasp.json` が生成され、`scriptId` が設定されます。
@@ -85,7 +84,7 @@ $ clasp clone <スクリプトID>
 ### 5. コードのアップロード
 
 ```bash
-$ clasp push
+$ npm run clasp:push
 ```
 
 ## 使い方
@@ -116,8 +115,7 @@ export function getReservations(currentYearMonth, _nextYearMonth) {
 ### 2. Google App Scriptへの反映
 
 ```shell
-$ npm run build
-$ clasp push
+$ npm run deploy
 ```
 
 ### 3. トリガーの設定
@@ -195,8 +193,7 @@ $ npm run test:coverage
 
 1. `src/` 配下のファイルを編集
 2. `npm test` でテスト実行
-3. `npm run build` でビルド
-4. `clasp push` でGASにアップロード
+3. `npm run deploy` でビルドしてGASにアップロード
 
 ### テスト構成
 
@@ -217,10 +214,10 @@ GitHub Actionsでプッシュ・PR時に自動テストが実行されます。
 <details>
 <summary><b>1. ビルドを忘れていませんか？</b></summary>
 
-`clasp push` の前に必ず `npm run build` を実行してください。
+`clasp push` の前に必ずビルドを実行してください。`npm run deploy` を使えばビルドとpushをまとめて実行できます。
 
 ```bash
-$ npm run build && clasp push
+$ npm run deploy
 ```
 
 `src/` のファイルを編集しただけでは `bundle.gs` は更新されません。
