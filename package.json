@@ -21,7 +21,7 @@
     "esbuild": "^0.28.0",
     "eslint": "^10.0.0",
     "globals": "^17.0.0",
-    "vitest": "^2.1.0"
+    "vitest": "^5.0.0"
   },
   "keywords": [
     "google-apps-script",
